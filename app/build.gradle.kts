@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -75,4 +76,6 @@ dependencies {
 //    implementation ("com.arthenica:ffmpeg-kit-android:4.5")
     implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
     implementation("androidx.activity:activity:1.10.1")
+
+    implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
 }
