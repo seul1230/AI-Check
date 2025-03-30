@@ -77,5 +77,7 @@ dependencies {
     implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
     implementation("androidx.activity:activity:1.10.1")
 
+    implementation(platform("com.google.firebase:firebase-bom:33.11.0"))
+    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
 }
