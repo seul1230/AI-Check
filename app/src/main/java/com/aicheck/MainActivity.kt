@@ -26,7 +26,8 @@ class MainActivity : FragmentActivity() {
     lateinit var biometricHelper: BiometricHelper
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var permissionManager: PermissionManager
-    private val REQUEST_NOTIFICATION_PERMISSION = 1001
+    private val REQUEST_NOTIFICATION_PERMISSION = 100
+    private val SMS_PERMISSION_REQUEST_CODE = 2001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +68,7 @@ class MainActivity : FragmentActivity() {
         )
         permissionManager.requestStoragePermission()
         requestNotificationPermissionIfNeeded()
+        requestSmsPermission()
     }
 
     private fun registerCallReceiver() {
@@ -128,5 +130,17 @@ class MainActivity : FragmentActivity() {
                 Log.e("FCM", "FCM 토큰 발급 실패", e)
             }
         })
+    }
+
+    private fun requestSmsPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS),
+                SMS_PERMISSION_REQUEST_CODE
+            )
+        }
     }
 }
