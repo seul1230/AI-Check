@@ -174,3 +174,4 @@ fabric.properties
 
 # 로컬 환경 변수나 SDK 경로
 local.properties
+google-services.json
