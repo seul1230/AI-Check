@@ -13,12 +13,17 @@ import android.webkit.WebView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import com.aicheck.ai.AiTest
 import com.aicheck.biometric.BiometricCallback
 import com.aicheck.call.CallReceiver
 import com.aicheck.permission.PermissionManager
 import com.aicheck.ui.WebViewManager
 import com.aicheck.biometric.BiometricHelper
 import com.aicheck.fcm.FCMTokenManager
+import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 
 class MainActivity : FragmentActivity() {
     private var callReceiver: CallReceiver? = null
@@ -28,6 +33,9 @@ class MainActivity : FragmentActivity() {
     private lateinit var permissionManager: PermissionManager
     private val REQUEST_NOTIFICATION_PERMISSION = 100
     private val SMS_PERMISSION_REQUEST_CODE = 2001
+    // 클래스 멤버로 선언 (AI 실행용)
+    private lateinit var interpreterDeepVoice: Interpreter
+    private lateinit var aiTest: AiTest
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +77,18 @@ class MainActivity : FragmentActivity() {
         permissionManager.requestStoragePermission()
         requestNotificationPermissionIfNeeded()
         requestSmsPermission()
+        // ✅ 모델 로딩
+        interpreterDeepVoice = Interpreter(loadModelFile("deepvoice.tflite"))
+        aiTest = AiTest(this)
+    }
+
+    private fun loadModelFile(modelFileName: String): MappedByteBuffer {
+        val fileDescriptor = assets.openFd(modelFileName)
+        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
+        val fileChannel = inputStream.channel
+        val startOffset = fileDescriptor.startOffset
+        val declaredLength = fileDescriptor.declaredLength
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
     private fun registerCallReceiver() {
