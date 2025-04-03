@@ -2,15 +2,17 @@ package com.aicheck.call
 
 import android.os.FileObserver
 import android.util.Log
+import com.aicheck.DeepVoiceDetector
 import com.aicheck.WavConverter2
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
 import java.io.File
 
-class CallRecordingFileObserver(path: String) : FileObserver(
-    path,
-    CREATE or MODIFY or CLOSE_WRITE
-) {
+class CallRecordingFileObserver(
+    path: String,
+    private val deepVoiceDetector: DeepVoiceDetector
+) : FileObserver(path, CREATE or MODIFY or CLOSE_WRITE)
+ {
     private val TAG = "CallRecordingFileObserver"
     private val observedDirectory = File(path)
     private var lastSentTime = 0L
@@ -40,21 +42,35 @@ class CallRecordingFileObserver(path: String) : FileObserver(
         }
     }
 
-    private fun saveWav(m4aFile: File) {
-        val wavFile = File(m4aFile.parent, "${getFileNameWithoutExtension(m4aFile)}.wav")
+     private fun saveWav(m4aFile: File) {
+         val wavFile = File(m4aFile.parent, "${getFileNameWithoutExtension(m4aFile)}.wav")
+         val command = "-i \"${m4aFile.absolutePath}\" -ar 16000 -ac 1 -c:a pcm_s16le \"${wavFile.absolutePath}\""
 
-        val command = "-i \"${m4aFile.absolutePath}\" -ar 16000 -ac 1 -c:a pcm_s16le \"${wavFile.absolutePath}\""
+         FFmpegKit.executeAsync(command) { session ->
+             val returnCode = session.returnCode
+             if (ReturnCode.isSuccess(returnCode)) {
+                 Log.d("FFmpeg", "변환 성공: ${wavFile.absolutePath}")
 
-        FFmpegKit.executeAsync(command) { session ->
-            val returnCode = session.returnCode
+                 // ✅ 딥보이스 모델 분석
+                 try {
+                     val result = deepVoiceDetector.detect(wavFile.absolutePath)
+                     Log.d("DeepVoice", """
+                    📣 딥보이스 탐지 결과
+                    - 파일 이름: ${result["basename"]}
+                    - 실제 라벨: ${result["true_label"]}
+                    - 평균 세그먼트 확률: ${result["mean_segment_prob"]}
+                    - 전체 딥페이크 확률: ${result["deepfake_prob_full"]}
+                    - 딥페이크 여부: ${result["is_deepfake_full"]}
+                """.trimIndent())
+                 } catch (e: Exception) {
+                     Log.e("DeepVoice", "탐지 중 오류", e)
+                 }
 
-            if (ReturnCode.isSuccess(returnCode)) {
-                Log.d("FFmpeg", "변환 성공: ${wavFile.absolutePath}")
-            } else {
-                Log.e("FFmpeg", "변환 실패: ${session.failStackTrace}")
-            }
-        }
-    }
+             } else {
+                 Log.e("FFmpeg", "변환 실패: ${session.failStackTrace}")
+             }
+         }
+     }
 
     private fun getFileNameWithoutExtension(file: File): String {
         val name = file.name

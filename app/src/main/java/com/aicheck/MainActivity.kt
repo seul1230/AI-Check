@@ -18,7 +18,13 @@ import com.aicheck.call.CallReceiver
 import com.aicheck.permission.PermissionManager
 import com.aicheck.ui.WebViewManager
 import com.aicheck.biometric.BiometricHelper
+import com.aicheck.call.CallRecordingFileObserver
 import com.aicheck.fcm.FCMTokenManager
+import org.tensorflow.lite.Interpreter
+import java.io.FileInputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.channels.FileChannel
 
 class MainActivity : FragmentActivity() {
     private var callReceiver: CallReceiver? = null
@@ -26,6 +32,8 @@ class MainActivity : FragmentActivity() {
     lateinit var biometricHelper: BiometricHelper
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var permissionManager: PermissionManager
+    private lateinit var deepVoiceDetector: DeepVoiceDetector
+    private lateinit var callObserver: CallRecordingFileObserver
     private val REQUEST_NOTIFICATION_PERMISSION = 100
     private val SMS_PERMISSION_REQUEST_CODE = 2001
 
@@ -72,10 +80,22 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun registerCallReceiver() {
-        callReceiver = CallReceiver()
-        val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
-        registerReceiver(callReceiver, filter)
-        Log.d("MainActivity", "CallReceiver 등록됨!")
+        try {
+            // 1. 딥보이스 모델 Interpreter 로딩
+            val interpreter = Interpreter(loadModelFile("deepvoice.tflite"))  // assets 폴더에 있어야 함
+            deepVoiceDetector = DeepVoiceDetector(this, interpreter)
+
+            // 2. CallReceiver 생성 시 모델 주입
+            callReceiver = CallReceiver(deepVoiceDetector)
+
+            // 3. 시스템 브로드캐스트 수신 등록
+            val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
+            registerReceiver(callReceiver, filter)
+
+            Log.d("MainActivity", "✅ CallReceiver 등록 완료!")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "❌ CallReceiver 등록 실패", e)
+        }
     }
 
     override fun onDestroy() {
@@ -143,4 +163,16 @@ class MainActivity : FragmentActivity() {
             )
         }
     }
+
+    private fun loadModelFile(fileName: String): ByteBuffer {
+        val fileDescriptor = assets.openFd(fileName)
+        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
+        val fileChannel = inputStream.channel
+        val startOffset = fileDescriptor.startOffset
+        val declaredLength = fileDescriptor.declaredLength
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+            .order(ByteOrder.nativeOrder())
+    }
+
+
 }

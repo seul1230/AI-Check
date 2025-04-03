@@ -8,8 +8,11 @@ import android.net.Uri
 import android.provider.CallLog
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.aicheck.DeepVoiceDetector
 
-class CallReceiver : BroadcastReceiver() {
+class CallReceiver(
+    private val deepVoiceDetector: DeepVoiceDetector  // 💡 추가!
+) : BroadcastReceiver() {
     companion object {
         private const val TAG = "CallReceiver"
         private var lastState: String = "" // 🔥 static 변수 → companion object
@@ -20,10 +23,9 @@ class CallReceiver : BroadcastReceiver() {
 
     private fun registerCallRecordingObserver() {
         if (fileObserver == null) {
-            Log.d(TAG, "📡 통화 녹음 감지 시작 (FileObserver)!@@@@@@@@@@@@@")
-            fileObserver = CallRecordingFileObserver(RECORDING_PATH)
-            fileObserver?.startWatching()
             Log.d(TAG, "📡 통화 녹음 감지 시작 (FileObserver)!")
+            fileObserver = CallRecordingFileObserver(RECORDING_PATH, deepVoiceDetector)
+            fileObserver?.startWatching()
         }
     }
 

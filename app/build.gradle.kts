@@ -70,14 +70,22 @@ dependencies {
     implementation("com.google.android.material:material:1.3.0")
 
     // ✅ FFmpeg 의존성 추가 (올바른 방식)
-//    implementation("com.arthenica:mobile-ffmpeg-full:4.3.2.LTS")
-//    implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
-//    implementation ("com.arthenica:ffmpeg-kit-full:4.5.1-1")
-//    implementation ("com.arthenica:ffmpeg-kit-android:4.5")
     implementation("com.arthenica:ffmpeg-kit-full:6.0-2")
     implementation("androidx.activity:activity:1.10.1")
 
     implementation(platform("com.google.firebase:firebase-bom:33.11.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
+
+    // AI
+
+    implementation("com.github.wendykierp:JTransforms:3.1")
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+//    implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.11.0")
+    implementation("org.tensorflow:tensorflow-lite:2.13.0")
+    implementation ("org.tensorflow:tensorflow-lite-select-tf-ops:2.13.0")
+//    implementation("com.microsoft.onnxruntime:onnxruntime-mobile:1.18.0")
+    implementation("com.microsoft.onnxruntime:onnxruntime-extensions-android:0.13.0")
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.15.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 }
