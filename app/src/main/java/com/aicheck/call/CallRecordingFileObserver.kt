@@ -42,9 +42,10 @@ class CallRecordingFileObserver(
         }
     }
 
-     private fun saveWav(m4aFile: File) {
-         val wavFile = File(m4aFile.parent, "${getFileNameWithoutExtension(m4aFile)}.wav")
-         val command = "-i \"${m4aFile.absolutePath}\" -ar 16000 -ac 1 -c:a pcm_s16le \"${wavFile.absolutePath}\""
+    private fun saveWav(m4aFile: File) {
+        val wavFile = File(m4aFile.parent, "${getFileNameWithoutExtension(m4aFile)}.wav")
+
+        val command = "-i \"${m4aFile.absolutePath}\" -ar 16000 -ac 1 -c:a pcm_s16le \"${wavFile.absolutePath}\""
 
          FFmpegKit.executeAsync(command) { session ->
              val returnCode = session.returnCode

@@ -81,22 +81,25 @@ class MainActivity : FragmentActivity() {
 
     private fun registerCallReceiver() {
         try {
-            // 1. 딥보이스 모델 Interpreter 로딩
-            val interpreter = Interpreter(loadModelFile("deepvoice.tflite"))  // assets 폴더에 있어야 함
+            // ✅ 1. Interpreter 초기화
+            val interpreter = Interpreter(loadModelFile("deepvoice.tflite"))
+
+            // ✅ 2. deepVoiceDetector 초기화
             deepVoiceDetector = DeepVoiceDetector(this, interpreter)
 
-            // 2. CallReceiver 생성 시 모델 주입
+            // ✅ 3. CallReceiver 초기화 (여기서 넘겨야 함)
             callReceiver = CallReceiver(deepVoiceDetector)
 
-            // 3. 시스템 브로드캐스트 수신 등록
+            // ✅ 4. registerReceiver 호출
             val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)
             registerReceiver(callReceiver, filter)
 
-            Log.d("MainActivity", "✅ CallReceiver 등록 완료!")
+            Log.d("MainActivity", "CallReceiver 등록 완료!")
         } catch (e: Exception) {
-            Log.e("MainActivity", "❌ CallReceiver 등록 실패", e)
+            Log.e("MainActivity", "CallReceiver 등록 실패", e)
         }
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
@@ -164,15 +167,17 @@ class MainActivity : FragmentActivity() {
         }
     }
 
-    private fun loadModelFile(fileName: String): ByteBuffer {
-        val fileDescriptor = assets.openFd(fileName)
+    private fun loadModelFile(modelFileName: String): ByteBuffer {
+        val fileDescriptor = assets.openFd(modelFileName)
         val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
         val fileChannel = inputStream.channel
         val startOffset = fileDescriptor.startOffset
         val declaredLength = fileDescriptor.declaredLength
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
-            .order(ByteOrder.nativeOrder())
+        val mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        mappedByteBuffer.order(ByteOrder.nativeOrder())
+        inputStream.close()
+        fileChannel.close()
+        return mappedByteBuffer
     }
-
 
 }
