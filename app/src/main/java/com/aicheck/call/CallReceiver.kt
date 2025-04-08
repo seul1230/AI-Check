@@ -9,9 +9,10 @@ import android.provider.CallLog
 import android.telephony.TelephonyManager
 import android.util.Log
 import com.aicheck.DeepVoiceDetector
+import com.aicheck.DeepVoiceDetectorWithChaquopy
 
 class CallReceiver(
-    private val deepVoiceDetector: DeepVoiceDetector  // 💡 추가!
+    private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy  // 💡 추가!
 ) : BroadcastReceiver() {
     companion object {
         private const val TAG = "CallReceiver"

@@ -20,6 +20,8 @@ import com.aicheck.ui.WebViewManager
 import com.aicheck.biometric.BiometricHelper
 import com.aicheck.call.CallRecordingFileObserver
 import com.aicheck.fcm.FCMTokenManager
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.ByteBuffer
@@ -32,13 +34,17 @@ class MainActivity : FragmentActivity() {
     lateinit var biometricHelper: BiometricHelper
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var permissionManager: PermissionManager
-    private lateinit var deepVoiceDetector: DeepVoiceDetector
+    private lateinit var deepVoiceDetector: DeepVoiceDetectorWithChaquopy
     private lateinit var callObserver: CallRecordingFileObserver
     private val REQUEST_NOTIFICATION_PERMISSION = 100
     private val SMS_PERMISSION_REQUEST_CODE = 2001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (!Python.isStarted()) {
+            Python.start(AndroidPlatform(this))
+        }
 
         sharedPreferences = getSharedPreferences("TokenStorage", Context.MODE_PRIVATE)
 
@@ -81,11 +87,8 @@ class MainActivity : FragmentActivity() {
 
     private fun registerCallReceiver() {
         try {
-            // ✅ 1. Interpreter 초기화
-            val interpreter = Interpreter(loadModelFile("deepvoice.tflite"))
-
-            // ✅ 2. deepVoiceDetector 초기화
-            deepVoiceDetector = DeepVoiceDetector(this, interpreter)
+            val interpreter = Interpreter(loadModelFile("deepvoice_model.tflite")) // 📌 파일명 정확히!
+            deepVoiceDetector = DeepVoiceDetectorWithChaquopy(this, interpreter)
 
             // ✅ 3. CallReceiver 초기화 (여기서 넘겨야 함)
             callReceiver = CallReceiver(deepVoiceDetector)

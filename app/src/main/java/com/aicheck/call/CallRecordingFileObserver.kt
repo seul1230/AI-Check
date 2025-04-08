@@ -3,6 +3,7 @@ package com.aicheck.call
 import android.os.FileObserver
 import android.util.Log
 import com.aicheck.DeepVoiceDetector
+import com.aicheck.DeepVoiceDetectorWithChaquopy
 import com.aicheck.WavConverter2
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
@@ -10,7 +11,7 @@ import java.io.File
 
 class CallRecordingFileObserver(
     path: String,
-    private val deepVoiceDetector: DeepVoiceDetector
+    private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy
 ) : FileObserver(path, CREATE or MODIFY or CLOSE_WRITE)
  {
     private val TAG = "CallRecordingFileObserver"
