@@ -7,6 +7,8 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.webkit.WebView
@@ -70,20 +72,61 @@ class MainActivity : FragmentActivity() {
         // ✅ PermissionManager 초기화
         permissionManager = PermissionManager(this)
 
-        // ✅ 필수 권한 요청
+        requestAllPermissions()
+    }
+
+    private fun requestAllPermissions() {
+        // 1단계: 전화 권한
         permissionManager.requestPermissions(
             onGranted = {
-                Log.d("MainActivity", "✅ 모든 권한 허용됨!")
-                registerCallReceiver()
+                Log.d("권한", "1단계 완료 → 알림 권한 요청")
+                requestNotificationPermission()
             },
             onDenied = {
-                Log.e("MainActivity", "❌ 필수 권한이 거부되었습니다.")
+                Log.e("권한", "❌ 전화 관련 권한 거부됨")
             }
         )
-        permissionManager.requestStoragePermission()
-        requestNotificationPermissionIfNeeded()
-        requestSmsPermission()
     }
+
+    private fun requestNotificationPermission() {
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d("권한", "2단계 → 알림 권한 요청")
+            requestNotificationPermissionIfNeeded()
+
+            // 다음 단계로 연결
+            Handler(Looper.getMainLooper()).postDelayed({
+                Log.d("권한", "3단계 → SMS 권한 요청")
+                requestSmsPermission()
+            }, 500)
+        }, 500) // 살짝 쉬고 요청
+    }
+
+    private fun requestSmsPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS),
+                SMS_PERMISSION_REQUEST_CODE
+            )
+        }
+
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d("권한", "4단계 → 저장소 권한 요청")
+            requestStoragePermission()
+        }, 500)
+    }
+
+
+    private fun requestStoragePermission() {
+        permissionManager.requestStoragePermission()
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d("권한", "2단계 완료 → SMS 권한 요청")
+            requestSmsPermission()
+        }, 300)
+    }
+
 
     private fun registerCallReceiver() {
         try {
@@ -144,6 +187,8 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    private var alreadyRequestedNotificationPermission = false
+
     private fun requestFCMToken() {
         FCMTokenManager.getFCMToken(object : FCMTokenManager.TokenCallback {
             override fun onSuccess(token: String?) {
@@ -156,18 +201,6 @@ class MainActivity : FragmentActivity() {
                 Log.e("FCM", "FCM 토큰 발급 실패", e)
             }
         })
-    }
-
-    private fun requestSmsPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS),
-                SMS_PERMISSION_REQUEST_CODE
-            )
-        }
     }
 
     private fun loadModelFile(modelFileName: String): ByteBuffer {
