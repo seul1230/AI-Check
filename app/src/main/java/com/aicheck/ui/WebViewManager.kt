@@ -14,7 +14,7 @@ class WebViewManager(private val context: Context) {
             webChromeClient = WebChromeClient()
             addJavascriptInterface(BiometricWebInterface(context), "AndroidBiometric") // 브릿지 등록
             addJavascriptInterface(TokenWebInterface(context), "AndroidBridge")
-            loadUrl("https://j12a603.p.ssafy.io/") // 여기에 웹페이지 홈 등록
+            loadUrl("https://j12a603.p.ssafy.io/auth/signin") // 여기에 웹페이지 홈 등록
         }
     }
 }

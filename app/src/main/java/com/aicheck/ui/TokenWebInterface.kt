@@ -29,7 +29,7 @@ class TokenWebInterface(context: Context) {
     }
 
     @JavascriptInterface
-    fun getFCMToken(): String {
+    fun getFcmToken(): String {
         val fcmToken = sharedPreferences.getString("fcmToken", "No FCM Token")
         Log.d(TAG, "📦 getFCMToken() 호출됨 → $fcmToken")
         return fcmToken ?: "No FCM Token"

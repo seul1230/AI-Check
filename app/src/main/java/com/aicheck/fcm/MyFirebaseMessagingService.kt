@@ -20,7 +20,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        Log.d(TAG, "📩 FCM 메시지 수신됨: ${remoteMessage.data}")
+        Log.d(TAG, "📩 FCM 메시지 수신됨: ${remoteMessage.notification}")
 
         val title = remoteMessage.notification?.title ?: "AI Check"
         val body = remoteMessage.notification?.body ?: "알림이 도착했습니다"
@@ -47,14 +47,16 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "AI Check 알림",
-                NotificationManager.IMPORTANCE_DEFAULT
+                CHANNEL_ID,
+                "AI Check 알림",
+                NotificationManager.IMPORTANCE_HIGH
             )
             notificationManager.createNotificationChannel(channel)
         }
