@@ -5,6 +5,7 @@ import android.os.FileObserver
 import android.util.Log
 import com.aicheck.DeepVoiceDetector
 import com.aicheck.DeepVoiceDetectorWithChaquopy
+import com.aicheck.PhishingAlertNotifier
 import com.aicheck.WavConverter2
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
@@ -80,6 +81,11 @@ class CallRecordingFileObserver(
 
                      if (isDeepfake) {
                          Log.d("DeepVoice", "🚨 딥페이크로 판단되어 서버에 전송합니다.")
+                         PhishingAlertNotifier.show(
+                             context,
+                             "⚠️ 보이스피싱 의심 통화",
+                             "전화번호 $phoneNumber 로부터 수상한 통화가 감지되었습니다."
+                         )
                          sendPhishingResultToServer(context, result, phoneNumber ?: "알 수 없음")
                      } else {
                          Log.d("DeepVoice", "✅ 정상 음성으로 판단됨. 서버 전송 생략.")
