@@ -71,7 +71,7 @@ class MainActivity : FragmentActivity() {
 
         // ✅ PermissionManager 초기화
         permissionManager = PermissionManager(this)
-
+        registerCallReceiver()
         requestAllPermissions()
     }
 
@@ -123,7 +123,7 @@ class MainActivity : FragmentActivity() {
         permissionManager.requestStoragePermission()
         Handler(Looper.getMainLooper()).postDelayed({
             Log.d("권한", "2단계 완료 → SMS 권한 요청")
-            requestSmsPermission()
+//            requestSmsPermission()
         }, 300)
     }
 
