@@ -1,5 +1,6 @@
 package com.aicheck.call
 
+import android.content.Context
 import android.os.FileObserver
 import android.util.Log
 import com.aicheck.DeepVoiceDetector
@@ -7,13 +8,24 @@ import com.aicheck.DeepVoiceDetectorWithChaquopy
 import com.aicheck.WavConverter2
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 
 class CallRecordingFileObserver(
     path: String,
-    private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy
+    private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy,
+    private val context: Context,
+    private val phoneNumber: String? // ✅ 전달 받기
 ) : FileObserver(path, CREATE or MODIFY or CLOSE_WRITE)
- {
+{
     private val TAG = "CallRecordingFileObserver"
     private val observedDirectory = File(path)
     private var lastSentTime = 0L
@@ -64,6 +76,14 @@ class CallRecordingFileObserver(
                     - 전체 딥페이크 확률: ${result["deepfake_prob_full"]}
                     - 딥페이크 여부: ${result["is_deepfake_full"]}
                 """.trimIndent())
+                     val isDeepfake = result["is_deepfake_full"] as? Boolean ?: false
+
+                     if (isDeepfake) {
+                         Log.d("DeepVoice", "🚨 딥페이크로 판단되어 서버에 전송합니다.")
+                         sendPhishingResultToServer(context, result, phoneNumber ?: "알 수 없음")
+                     } else {
+                         Log.d("DeepVoice", "✅ 정상 음성으로 판단됨. 서버 전송 생략.")
+                     }
                  } catch (e: Exception) {
                      Log.e("DeepVoice", "탐지 중 오류", e)
                  }
@@ -95,72 +115,63 @@ class CallRecordingFileObserver(
         }
     }
 
-    private fun extractFromStartToNow(inputFile: File, outputFile: File) {
-        try {
-            if (!inputFile.exists()) {
-                Log.e(TAG, "파일이 존재하지 않음: ${inputFile.absolutePath}")
-                return
+    fun sendPhishingResultToServer(context: Context, result: Map<String, Any>, phoneNumber: String) {
+        Log.d("PhishingUploader", "🚀 서버 전송 시작!")
+
+        val accessToken = getAccessTokenFromPrefs(context)
+        if (accessToken == null) {
+            Log.e("PhishingUploader", "❌ accessToken 없음. 서버 전송 불가.")
+            return
+        }
+
+        val score = (result["deepfake_prob_full"] as? Number)?.toFloat() ?: 0f
+
+        Log.d("PhishingUploader", """
+        📦 전송할 데이터:
+        - phoneNumber: $phoneNumber
+        - score: $score
+    """.trimIndent())
+
+        val json = JSONObject().apply {
+            put("phoneNumber", phoneNumber)
+            put("score", score.toDouble())
+        }
+
+        val jsonString = json.toString()
+        Log.d("PhishingUploader", "📨 JSON 바디: $jsonString")
+
+        val client = OkHttpClient()
+        val mediaType = "application/json".toMediaType()
+        val requestBody = jsonString.toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url("https://j12a603.p.ssafy.io/aicheck/phishings")
+            .addHeader("Authorization", "Bearer $accessToken")
+            .post(requestBody)
+            .build()
+
+        Log.d("PhishingUploader", "🔐 요청 준비 완료. 서버로 전송 중...")
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.e("PhishingUploader", "❌ 서버 전송 실패: ${e.message}")
             }
 
-            Log.d(TAG, "FFmpegKit으로 오디오 실시간 변환 시작...")
-
-            val inputPath = "\"${inputFile.absolutePath}\""
-            val outputPath = "\"${outputFile.absolutePath}\""
-
-            val ffmpegCommand = "-re -i $inputPath -movflags +faststart -use_editlist 0 -c copy -f wav $outputPath"
-
-            FFmpegKit.executeAsync(ffmpegCommand) { session ->
-                val returnCode = session.returnCode
-                val output = session.output
-                val error = session.failStackTrace
-
-                Log.d(TAG, "FFmpeg 실행 결과: $output")
-                Log.e(TAG, "FFmpeg 오류 로그: $error")
-
-                if (ReturnCode.isSuccess(returnCode)) {
-                    Log.d(TAG, "FFmpegKit 실시간 변환 완료: ${outputFile.absolutePath}")
+            override fun onResponse(call: Call, response: Response) {
+                val body = response.body?.string()
+                if (response.isSuccessful) {
+                    Log.d("PhishingUploader", "✅ 서버 전송 성공! 응답: $body")
                 } else {
-                    Log.e(TAG, "FFmpegKit 변환 실패: $returnCode")
+                    Log.e("PhishingUploader", "❌ 서버 응답 실패: ${response.code} / 응답 바디: $body")
                 }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "FFmpegKit 실행 중 오류 발생: ${e.message}")
-        }
+        })
     }
 
-    private fun sendToAI(audioData: ByteArray, originalFile: File) {
-        Log.d(TAG, "🚀 AI 모델에 데이터 전송: ${audioData.size} 바이트")
 
-        val wavFile = File(observedDirectory, "output.wav")
-        convertM4AToWav(originalFile, wavFile)
-        sendWavToAI(wavFile)
+    private fun getAccessTokenFromPrefs(context: Context): String? {
+        val prefs = context.getSharedPreferences("TokenStorage", Context.MODE_PRIVATE)
+        return prefs.getString("accessToken", null)
     }
 
-    fun convertM4AToWav(inputFile: File, outputFile: File) {
-        val command = "-i ${inputFile.absolutePath} -acodec pcm_s16le -ar 16000 -ac 1 -f wav ${outputFile.absolutePath}"
-        Log.d(TAG, "FFmpegKit 변환 완료: ${outputFile.absolutePath}")
-        // FFmpegKit.executeAsync(command) { ... }  // 원래 변환 수행하려면 여기에 넣어야 함
-    }
-
-    private fun sendWavToAI(wavFile: File) {
-        Log.d(TAG, "AI 모델에 WAV 파일 전송: ${wavFile.absolutePath}")
-        // TODO: 온디바이스 AI 연동 코드
-    }
-
-    private fun saveDebugWav(inputFile: File) {
-        val debugWavFile = File(observedDirectory, "debug_audio.wav")
-        convertM4AToWav(inputFile, debugWavFile)
-        Log.d(TAG, "디버깅용 WAV 파일 저장 완료: ${debugWavFile.absolutePath}")
-    }
-
-    private fun saveDebugFile2(audioData: ByteArray) {
-        try {
-            val rawFile = File(observedDirectory, "debug_audio.raw")
-            val wavFile = File(observedDirectory, "debug_audio_fixed.wav")
-            WavConverter2.addWavHeader(rawFile, wavFile, 16000, 1, 16)
-            Log.d(TAG, "WAV 파일 변환 완료: ${wavFile.absolutePath}")
-        } catch (e: Exception) {
-            Log.e(TAG, "WAV 변환 실패: ${e.message}")
-        }
-    }
 }

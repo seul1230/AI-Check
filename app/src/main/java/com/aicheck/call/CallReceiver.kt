@@ -18,14 +18,20 @@ class CallReceiver(
         private const val TAG = "CallReceiver"
         private var lastState: String = "" // 🔥 static 변수 → companion object
         private const val RECORDING_PATH = "/storage/emulated/0/Recordings/Call/" // 삼성폰 기준
+        var lastPhoneNumber: String? = null
     }
 
     private var fileObserver: CallRecordingFileObserver? = null
 
-    private fun registerCallRecordingObserver() {
+    private fun registerCallRecordingObserver(context: Context) {
         if (fileObserver == null) {
             Log.d(TAG, "📡 통화 녹음 감지 시작 (FileObserver)!")
-            fileObserver = CallRecordingFileObserver(RECORDING_PATH, deepVoiceDetector)
+            fileObserver = CallRecordingFileObserver(
+                RECORDING_PATH,
+                deepVoiceDetector,
+                context,
+                lastPhoneNumber ?: "알 수 없음"
+            )
             fileObserver?.startWatching()
         }
     }
@@ -48,11 +54,14 @@ class CallReceiver(
             when (state) {
                 TelephonyManager.EXTRA_STATE_OFFHOOK -> {
                     Log.d(TAG, "📲 통화 중!")
-                    registerCallRecordingObserver()
+                    registerCallRecordingObserver(context)
                 }
                 TelephonyManager.EXTRA_STATE_IDLE -> {
                     Log.d(TAG, "❌ 통화 종료됨!")
                     unregisterCallRecordingObserver()
+                }
+                TelephonyManager.EXTRA_STATE_RINGING -> {
+                    handleRingingCall(context)
                 }
             }
         }
@@ -76,9 +85,12 @@ class CallReceiver(
         cursor?.use {
             if (it.moveToFirst()) {
                 val numberIndex = it.getColumnIndex(CallLog.Calls.NUMBER)
-                return it.getString(numberIndex)
+                val number = it.getString(numberIndex)
+                lastPhoneNumber = number // ✅ 저장
+                return number
             }
         }
         return "알 수 없음"
     }
+
 }
