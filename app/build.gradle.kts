@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
     id("com.google.gms.google-services")
     id("com.chaquo.python") // ✅ Chaquopy 추가
 }
@@ -123,4 +124,7 @@ dependencies {
 
     // ✅ 기존 .jar 파일 유지
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
+
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+    implementation("org.json:json:20211205")
 }

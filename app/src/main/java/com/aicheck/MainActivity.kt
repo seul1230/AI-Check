@@ -41,7 +41,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        UrlModelManager.initialize(this)
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(this))
         }
