@@ -7,14 +7,13 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.telephony.TelephonyManager
 import android.util.Log
 import android.webkit.WebView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.aicheck.biometric.BiometricCallback
 import com.aicheck.call.CallReceiver
 import com.aicheck.permission.PermissionManager
@@ -24,11 +23,15 @@ import com.aicheck.call.CallRecordingFileObserver
 import com.aicheck.fcm.FCMTokenManager
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
+import kotlin.coroutines.resume
 
 class MainActivity : FragmentActivity() {
     private var callReceiver: CallReceiver? = null
@@ -43,6 +46,7 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//        requestAllPermissionsSequentially()
         UrlModelManager.initialize(this)
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(this))
@@ -71,60 +75,114 @@ class MainActivity : FragmentActivity() {
 
         // ✅ PermissionManager 초기화
         permissionManager = PermissionManager(this)
+        window.decorView.post {
+            requestAllPermissionsSequentially()
+        }
         registerCallReceiver()
-        requestAllPermissions()
     }
 
-    private fun requestAllPermissions() {
-        // 1단계: 전화 권한
-        permissionManager.requestPermissions(
-            onGranted = {
+    fun FragmentActivity.requestAllPermissionsSequentially() {
+        lifecycleScope.launch {
+            try {
+                requestPhonePermissionSuspend()
                 Log.d("권한", "1단계 완료 → 알림 권한 요청")
-                requestNotificationPermission()
-            },
-            onDenied = {
-                Log.e("권한", "❌ 전화 관련 권한 거부됨")
+
+                requestNotificationPermissionSuspend()
+                Log.d("권한", "2단계 완료 → SMS 권한 요청")
+
+                requestSmsPermissionSuspend()
+                Log.d("권한", "3단계 완료 → 저장소 권한 요청")
+
+                requestStoragePermissionSuspend()
+                Log.d("권한", "4단계 완료 → 모든 권한 허용 완료")
+            } catch (e: Exception) {
+                Log.e("권한", "🚫 권한 요청 중단됨: ${e.message}")
             }
-        )
+        }
     }
 
-    private fun requestNotificationPermission() {
-        Handler(Looper.getMainLooper()).postDelayed({
-            Log.d("권한", "2단계 → 알림 권한 요청")
-            requestNotificationPermissionIfNeeded()
-
-            // 다음 단계로 연결
-            Handler(Looper.getMainLooper()).postDelayed({
-                Log.d("권한", "3단계 → SMS 권한 요청")
-                requestSmsPermission()
-            }, 500)
-        }, 500) // 살짝 쉬고 요청
+    suspend fun FragmentActivity.requestPhonePermissionSuspend() {
+        suspendCancellableCoroutine { cont ->
+            permissionManager.requestPermissions(
+                onGranted = { cont.resume(Unit) },
+                onDenied = { cont.cancel(Exception("전화 권한 거부됨")) }
+            )
+        }
     }
 
-    private fun requestSmsPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
+    suspend fun FragmentActivity.requestNotificationPermissionSuspend() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val permission = Manifest.permission.POST_NOTIFICATIONS
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+                suspendCancellableCoroutine<Unit> { cont ->
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(permission),
+                        REQUEST_NOTIFICATION_PERMISSION
+                    )
+                    notificationContinuation = cont
+                }
+            } else {
+                requestFCMToken()
+            }
+        } else {
+            requestFCMToken()
+        }
+    }
+
+
+    suspend fun FragmentActivity.requestSmsPermissionSuspend() {
+        val receiveGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+        val readGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+
+        if (receiveGranted && readGranted) return
+
+        suspendCancellableCoroutine<Unit> { cont ->
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS),
                 SMS_PERMISSION_REQUEST_CODE
             )
+            smsContinuation = cont
         }
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            Log.d("권한", "4단계 → 저장소 권한 요청")
-            requestStoragePermission()
-        }, 500)
     }
 
+    private suspend fun FragmentActivity.requestStoragePermissionSuspend() {
+        suspendCancellableCoroutine<Unit> { cont ->
+            permissionManager.requestStoragePermission {
+                cont.resume(Unit)
+            }
+        }
+    }
 
-    private fun requestStoragePermission() {
-        permissionManager.requestStoragePermission()
-        Handler(Looper.getMainLooper()).postDelayed({
-            Log.d("권한", "2단계 완료 → SMS 권한 요청")
-//            requestSmsPermission()
-        }, 300)
+    private var notificationContinuation: CancellableContinuation<Unit>? = null
+    private var smsContinuation: CancellableContinuation<Unit>? = null
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            REQUEST_NOTIFICATION_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    requestFCMToken()
+                    notificationContinuation?.resume(Unit)
+                } else {
+                    notificationContinuation?.cancel(Exception("알림 권한 거부됨"))
+                }
+            }
+            SMS_PERMISSION_REQUEST_CODE -> {
+                val granted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+                if (granted) {
+                    smsContinuation?.resume(Unit)
+                } else {
+                    smsContinuation?.cancel(Exception("SMS 권한 거부됨"))
+                }
+            }
+        }
     }
 
 
@@ -152,38 +210,6 @@ class MainActivity : FragmentActivity() {
         callReceiver?.let {
             unregisterReceiver(it)
             Log.d("MainActivity", "CallReceiver 해제됨!")
-        }
-    }
-
-    private fun requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val permission = Manifest.permission.POST_NOTIFICATIONS
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(permission), REQUEST_NOTIFICATION_PERMISSION)
-            } else {
-                Log.d("FCM", "🔔 알림 권한 이미 허용됨 → FCM 토큰 발급 진행")
-                requestFCMToken()
-            }
-        } else {
-            Log.d("FCM", "🔔 Android 12 이하 → FCM 토큰 바로 발급")
-            requestFCMToken()
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == REQUEST_NOTIFICATION_PERMISSION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Log.d("FCM", "✅ 알림 권한 허용됨 → FCM 토큰 발급")
-                requestFCMToken()
-            } else {
-                Log.e("FCM", "❌ 알림 권한 거부됨 → FCM 토큰 발급 불가")
-            }
         }
     }
 

@@ -61,7 +61,7 @@ class PermissionManager(private val activity: FragmentActivity) {
     }
 
     // ✅ 저장소 권한 요청
-    fun requestStoragePermission() {
+    fun requestStoragePermission(function: () -> Unit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)

@@ -34,4 +34,14 @@ class TokenWebInterface(context: Context) {
         Log.d(TAG, "📦 getFCMToken() 호출됨 → $fcmToken")
         return fcmToken
     }
+
+    @JavascriptInterface
+    fun clearAuthTokens() {
+        sharedPreferences.edit().apply {
+            remove("accessToken")
+            remove("refreshToken")
+            apply()
+        }
+        Log.d(TAG, "🗑️ AccessToken 및 RefreshToken 삭제됨!")
+    }
 }
