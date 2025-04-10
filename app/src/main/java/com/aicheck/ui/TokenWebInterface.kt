@@ -29,9 +29,9 @@ class TokenWebInterface(context: Context) {
     }
 
     @JavascriptInterface
-    fun getFcmToken(): String {
-        val fcmToken = sharedPreferences.getString("fcmToken", "No FCM Token")
+    fun getFcmToken(): String? {
+        val fcmToken = sharedPreferences.getString("fcmToken", null)
         Log.d(TAG, "📦 getFCMToken() 호출됨 → $fcmToken")
-        return fcmToken ?: "No FCM Token"
+        return fcmToken
     }
 }

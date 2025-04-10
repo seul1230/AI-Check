@@ -72,6 +72,9 @@ chaquopy {
             install("numpy")
             install("pillow")
             install("scipy")
+            install("scikit-learn")
+            install("pandas")
+            install("tqdm")
         }
     }
 }
