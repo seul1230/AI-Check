@@ -33,14 +33,18 @@ class SmsReceiver : BroadcastReceiver() {
                 while (matcher.find()) {
                     val rawUrl = matcher.group()
                     val fullUrl = if (rawUrl.startsWith("http")) rawUrl else "http://$rawUrl"
-                    Log.d(TAG, "🌐 추출된 URL: $fullUrl")
+                    Log.d(TAG, "🌐 추출된 URL: $rawUrl")
 
                     try {
-                        val maliciousProb = UrlModelManager.detectUrl(context, fullUrl)
+                        // 프로토콜 제거
+                        val urlForModel = fullUrl.replaceFirst("^https?://".toRegex(), "")
+                        Log.d(TAG, "🔍 모델 입력용 URL: $urlForModel")
+
+                        val maliciousProb = UrlModelManager.detectUrl(context, urlForModel)
                         Log.d(TAG, "🤖 악성 확률: $maliciousProb")
 
                         if (maliciousProb >= 0.5f) {
-                            sendBadUrlToServer(context, fullUrl, maliciousProb)
+                            sendBadUrlToServer(context, fullUrl, maliciousProb) // 서버에는 전체 URL 전송
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "🚨 URL 탐지 중 오류", e)

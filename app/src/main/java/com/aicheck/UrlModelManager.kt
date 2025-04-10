@@ -88,6 +88,7 @@ object UrlModelManager {
 
             val result = pyModule.callAttr("extract_and_scale", url, scalerJsonPath)
             val featureVector = result.asList().map { it.toJava(Float::class.java) }.toFloatArray()
+            Log.d("PythonVector", "features = ${featureVector.joinToString()}")
 
             val inputBuffer = ByteBuffer.allocateDirect(4 * featureVector.size).apply {
                 order(ByteOrder.nativeOrder())
