@@ -25,22 +25,26 @@ class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (Telephony.Sms.Intents.SMS_RECEIVED_ACTION == intent.action) {
             val msgs = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+
             for (msg in msgs) {
                 val messageBody = msg.messageBody
                 Log.d(TAG, "📩 수신된 메시지: $messageBody")
 
                 val matcher = urlPattern.matcher(messageBody)
                 while (matcher.find()) {
-                    val rawUrl = matcher.group()
-                    val fullUrl = if (rawUrl.startsWith("http")) rawUrl else "http://$rawUrl"
-                    Log.d(TAG, "🌐 추출된 URL: $fullUrl")
+                    var url = matcher.group() // URL만 추출됨
+                    Log.d(TAG, "🌐 추출된 raw URL: $url")
+
+                    // ✅ http:// 또는 https:// 제거
+                    url = url.removePrefix("http://").removePrefix("https://")
+                    Log.d(TAG, "🌐 정리된 URL: $url")
 
                     try {
-                        val maliciousProb = UrlModelManager.detectUrl(context, fullUrl)
+                        val maliciousProb = UrlModelManager.detectUrl(context, url)
                         Log.d(TAG, "🤖 악성 확률: $maliciousProb")
 
                         if (maliciousProb >= 0.5f) {
-                            sendBadUrlToServer(context, fullUrl, maliciousProb)
+                            sendBadUrlToServer(context, url, maliciousProb)
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "🚨 URL 탐지 중 오류", e)
@@ -49,6 +53,7 @@ class SmsReceiver : BroadcastReceiver() {
             }
         }
     }
+
 
     private fun sendBadUrlToServer(context: Context, url: String, score: Float) {
         val accessToken = getAccessTokenFromPrefs(context)
