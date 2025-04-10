@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 
 class App : Application() {
+    lateinit var phishingDetector: VoicePhishingDetector
+
     companion object {
         private lateinit var instance: App
 
@@ -13,5 +15,6 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        phishingDetector = VoicePhishingDetector(this)
     }
 }

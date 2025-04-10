@@ -112,8 +112,10 @@ dependencies {
     implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
 
     // ✅ TensorFlow Lite & TF-Select-ops
-    implementation("org.tensorflow:tensorflow-lite:2.13.0")
+//    implementation("org.tensorflow:tensorflow-lite:2.13.0")
+    implementation("com.google.ai.edge.litert:litert:1.2.0")
     implementation("org.tensorflow:tensorflow-lite-select-tf-ops:2.13.0")
+//    implementation("com.google.ai.edge.litert:litert:1.0.1")
 
     // ✅ ONNX Runtime
     implementation("com.microsoft.onnxruntime:onnxruntime-extensions-android:0.13.0")

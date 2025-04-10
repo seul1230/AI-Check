@@ -40,13 +40,13 @@ class MainActivity : FragmentActivity() {
     private lateinit var sharedPreferences: SharedPreferences
     private lateinit var permissionManager: PermissionManager
     private lateinit var deepVoiceDetector: DeepVoiceDetectorWithChaquopy
+    private lateinit var voicePhishingDetector: VoicePhishingDetector
     private lateinit var callObserver: CallRecordingFileObserver
     private val REQUEST_NOTIFICATION_PERMISSION = 100
     private val SMS_PERMISSION_REQUEST_CODE = 2001
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        requestAllPermissionsSequentially()
         UrlModelManager.initialize(this)
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(this))
@@ -78,6 +78,7 @@ class MainActivity : FragmentActivity() {
         window.decorView.post {
             requestAllPermissionsSequentially()
         }
+        voicePhishingDetector = (applicationContext as App).phishingDetector
         registerCallReceiver()
     }
 
@@ -188,11 +189,11 @@ class MainActivity : FragmentActivity() {
 
     private fun registerCallReceiver() {
         try {
-            val interpreter = Interpreter(loadModelFile("deepvoice_model.tflite")) // 📌 파일명 정확히!
+            val interpreter = Interpreter(loadModelFile("models/deepvoice_model.tflite")) // 📌 파일명 정확히!
             deepVoiceDetector = DeepVoiceDetectorWithChaquopy(this, interpreter)
 
             // ✅ 3. CallReceiver 초기화 (여기서 넘겨야 함)
-            callReceiver = CallReceiver(deepVoiceDetector)
+            callReceiver = CallReceiver(deepVoiceDetector, voicePhishingDetector)
 
             // ✅ 4. registerReceiver 호출
             val filter = IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED)

@@ -10,15 +10,19 @@ class FakeMemory:
     def clear(self, *args, **kwargs): pass
 joblib.Memory = FakeMemory
 
-if not os.path.exists("/data/data/com.aicheck/files/chaquopy/installed_flag.txt"):
-    print("🔧 First-time Python setup…")
-    import librosa
-    import tensorflow as tf
-    import matplotlib.pyplot as plt
-    with open("/data/data/com.aicheck/files/chaquopy/installed_flag.txt", "w") as f:
-        f.write("done")
-else:
-    print("✅ Already installed, skipping re-import.")
+import librosa
+import tensorflow as tf
+import matplotlib.pyplot as plt
+
+# if not os.path.exists("/data/data/com.aicheck/files/chaquopy/installed_flag.txt"):
+#     print("🔧 First-time Python setup…")
+#     import librosa
+#     import tensorflow as tf
+#     import matplotlib.pyplot as plt
+#     with open("/data/data/com.aicheck/files/chaquopy/installed_flag.txt", "w") as f:
+#         f.write("done")
+# else:
+#     print("✅ Already installed, skipping re-import.")
 
 import numpy as np
 

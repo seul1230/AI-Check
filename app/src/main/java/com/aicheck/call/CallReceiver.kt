@@ -8,11 +8,14 @@ import android.net.Uri
 import android.provider.CallLog
 import android.telephony.TelephonyManager
 import android.util.Log
+import com.aicheck.App
 import com.aicheck.DeepVoiceDetector
 import com.aicheck.DeepVoiceDetectorWithChaquopy
+import com.aicheck.VoicePhishingDetector
 
 class CallReceiver(
-    private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy  // 💡 추가!
+    private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy,  // 💡 추가
+    private val voicePhishingDetector: VoicePhishingDetector
 ) : BroadcastReceiver() {
     companion object {
         private const val TAG = "CallReceiver"
@@ -26,11 +29,13 @@ class CallReceiver(
     private fun registerCallRecordingObserver(context: Context) {
         if (fileObserver == null) {
             Log.d(TAG, "📡 통화 녹음 감지 시작 (FileObserver)!")
+
             fileObserver = CallRecordingFileObserver(
                 RECORDING_PATH,
                 deepVoiceDetector,
                 context,
-                lastPhoneNumber ?: "알 수 없음"
+                lastPhoneNumber ?: "알 수 없음",
+                voicePhishingDetector // ✅ 생성자에서 받은 거 사용
             )
             fileObserver?.startWatching()
         }

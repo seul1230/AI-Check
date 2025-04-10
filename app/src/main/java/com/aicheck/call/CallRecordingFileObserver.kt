@@ -3,9 +3,11 @@ package com.aicheck.call
 import android.content.Context
 import android.os.FileObserver
 import android.util.Log
+import com.aicheck.ClovaSpeechClient
 import com.aicheck.DeepVoiceDetector
 import com.aicheck.DeepVoiceDetectorWithChaquopy
 import com.aicheck.PhishingAlertNotifier
+import com.aicheck.VoicePhishingDetector
 import com.aicheck.WavConverter2
 import com.arthenica.ffmpegkit.FFmpegKit
 import com.arthenica.ffmpegkit.ReturnCode
@@ -24,7 +26,8 @@ class CallRecordingFileObserver(
     path: String,
     private val deepVoiceDetector: DeepVoiceDetectorWithChaquopy,
     private val context: Context,
-    private val phoneNumber: String? // ✅ 전달 받기
+    private val phoneNumber: String?, // ✅ 전달 받기
+    private val voicePhishingDetector: VoicePhishingDetector
 ) : FileObserver(path, CREATE or MODIFY or CLOSE_WRITE)
 {
     private val TAG = "CallRecordingFileObserver"
@@ -58,47 +61,74 @@ class CallRecordingFileObserver(
 
     private fun saveWav(m4aFile: File) {
         val wavFile = File(m4aFile.parent, "${getFileNameWithoutExtension(m4aFile)}.wav")
-
         val command = "-i \"${m4aFile.absolutePath}\" -ar 16000 -ac 1 -c:a pcm_s16le \"${wavFile.absolutePath}\""
 
-         FFmpegKit.executeAsync(command) { session ->
-             val returnCode = session.returnCode
-             if (ReturnCode.isSuccess(returnCode)) {
-                 Log.d("FFmpeg", "변환 성공: ${wavFile.absolutePath}")
+        FFmpegKit.executeAsync(command) { session ->
+            val returnCode = session.returnCode
+            if (ReturnCode.isSuccess(returnCode)) {
+                Log.d("FFmpeg", "변환 성공: ${wavFile.absolutePath}")
 
-                 // ✅ 딥보이스 모델 분석
-                 try {
-                     val result = deepVoiceDetector.detect(wavFile.absolutePath)
-                     Log.d("DeepVoice", """
-                    📣 딥보이스 탐지 결과
-                    - 파일 이름: ${result["basename"]}
-                    - 실제 라벨: ${result["true_label"]}
-                    - 평균 세그먼트 확률: ${result["mean_segment_prob"]}
-                    - 전체 딥페이크 확률: ${result["deepfake_prob_full"]}
-                    - 딥페이크 여부: ${result["is_deepfake_full"]}
-                """.trimIndent())
-                     val isDeepfake = result["is_deepfake_full"] as? Boolean ?: false
+                // ✅ Clova Speech API로 텍스트 추출
+                ClovaSpeechClient.transcribe(wavFile, object : ClovaSpeechClient.Callback {
+                    override fun onSuccess(text: String) {
+                        Log.d("ClovaSTT", "🎤 인식된 텍스트: $text")
 
-                     if (isDeepfake) {
-                         Log.d("DeepVoice", "🚨 딥페이크로 판단되어 서버에 전송합니다.")
-                         PhishingAlertNotifier.show(
-                             context,
-                             "⚠️ 보이스피싱 의심 통화",
-                             "전화번호 $phoneNumber 로부터 수상한 통화가 감지되었습니다."
-                         )
-                         sendPhishingResultToServer(context, result, phoneNumber ?: "알 수 없음")
-                     } else {
-                         Log.d("DeepVoice", "✅ 정상 음성으로 판단됨. 서버 전송 생략.")
-                     }
-                 } catch (e: Exception) {
-                     Log.e("DeepVoice", "탐지 중 오류", e)
-                 }
+                        try {
+                            // ✅ 보이스피싱 탐지 (텍스트 기반)
+                            val phishingJson = JSONObject().apply {
+                                put("text", text)
+                            }.toString()
 
-             } else {
-                 Log.e("FFmpeg", "변환 실패: ${session.failStackTrace}")
-             }
-         }
-     }
+                            val isPhishing = voicePhishingDetector.detectPhishing(phishingJson)
+                            Log.d("VoicePhishing", "보이스피싱 여부: $isPhishing")
+
+                            // ✅ 딥보이스 탐지 (오디오 기반)
+                            val result = deepVoiceDetector.detect(wavFile.absolutePath)
+                            val isDeepfake = result["is_deepfake_full"] as? Boolean ?: false
+
+                            Log.d("DeepVoice", """
+                            📣 딥보이스 탐지 결과
+                            - 파일 이름: ${result["basename"]}
+                            - 실제 라벨: ${result["true_label"]}
+                            - 평균 세그먼트 확률: ${result["mean_segment_prob"]}
+                            - 전체 딥페이크 확률: ${result["deepfake_prob_full"]}
+                            - 딥페이크 여부: $isDeepfake
+                            - 인식된 텍스트: $text
+                        """.trimIndent())
+
+                            // ✅ 위험 탐지 시 서버 전송
+                            if (isPhishing || isDeepfake) {
+                                Log.d("Security", "🚨 위협 탐지됨 → 서버로 전송")
+                                PhishingAlertNotifier.show(
+                                    context,
+                                    "⚠️ 의심 통화",
+                                    "전화번호 $phoneNumber 로부터 수상한 통화가 감지되었습니다."
+                                )
+                                // 딥보이스 결과 + 텍스트 같이 보낼 수 있음
+                                val mutableResult = result.toMutableMap()
+                                mutableResult["text"] = text
+                                sendPhishingResultToServer(context, result, phoneNumber ?: "알 수 없음")
+                            } else {
+                                Log.d("Security", "✅ 정상 통화로 판단됨. 서버 전송 생략.")
+                            }
+
+                        } catch (e: Exception) {
+                            Log.e("Detection", "탐지 중 오류 발생", e)
+                        }
+                    }
+
+                    override fun onFailure(error: String) {
+                        Log.e("ClovaSTT", "❌ STT 오류: $error")
+                    }
+                })
+
+            } else {
+                Log.e("FFmpeg", "변환 실패: ${session.failStackTrace}")
+            }
+        }
+    }
+
+
 
     private fun getFileNameWithoutExtension(file: File): String {
         val name = file.name
@@ -113,9 +143,7 @@ class CallRecordingFileObserver(
         Log.d(TAG, "파일 감지됨: ${file.absolutePath}")
 
         if (currentTime - lastSentTime >= INTERVAL_MS) {
-//            val outputWav = File(observedDirectory, "debug_audio.wav")
-//            extractFromStartToNow(file, outputWav)
-//            lastSentTime = currentTime
+
         } else {
             Log.d(TAG, "저장 조건 미충족. 데이터 처리 안 함")
         }
