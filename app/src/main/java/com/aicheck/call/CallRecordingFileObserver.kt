@@ -97,6 +97,7 @@ class CallRecordingFileObserver(
                         """.trimIndent())
 
                             // ✅ 위험 탐지 시 서버 전송
+                            // ✅ 위험 탐지 시 서버 전송
                             if (isPhishing || isDeepfake) {
                                 Log.d("Security", "🚨 위협 탐지됨 → 서버로 전송")
                                 PhishingAlertNotifier.show(
@@ -104,10 +105,21 @@ class CallRecordingFileObserver(
                                     "⚠️ 의심 통화",
                                     "전화번호 $phoneNumber 로부터 수상한 통화가 감지되었습니다."
                                 )
+
                                 // 딥보이스 결과 + 텍스트 같이 보낼 수 있음
                                 val mutableResult = result.toMutableMap()
                                 mutableResult["text"] = text
-                                sendPhishingResultToServer(context, result, phoneNumber ?: "알 수 없음")
+
+                                // ✅ 딥보이스 확률
+                                val deepScore = (result["deepfake_prob_full"] as? Number)?.toFloat() ?: 0f
+
+                                // ✅ 보이스피싱은 true일 경우 점수 1.0, false면 0.0으로 처리
+                                val phishingScore = if (isPhishing) 1.0f else 0.0f
+
+                                // ✅ 더 높은 점수 선택
+                                val finalScore = maxOf(deepScore, phishingScore)
+
+                                sendPhishingResultToServer(context, result, phoneNumber ?: "알 수 없음", finalScore)
                             } else {
                                 Log.d("Security", "✅ 정상 통화로 판단됨. 서버 전송 생략.")
                             }
@@ -149,7 +161,7 @@ class CallRecordingFileObserver(
         }
     }
 
-    fun sendPhishingResultToServer(context: Context, result: Map<String, Any>, phoneNumber: String) {
+    fun sendPhishingResultToServer(context: Context, result: Map<String, Any>, phoneNumber: String, score: Float) {
         Log.d("PhishingUploader", "🚀 서버 전송 시작!")
 
         val accessToken = getAccessTokenFromPrefs(context)
@@ -157,8 +169,6 @@ class CallRecordingFileObserver(
             Log.e("PhishingUploader", "❌ accessToken 없음. 서버 전송 불가.")
             return
         }
-
-        val score = (result["deepfake_prob_full"] as? Number)?.toFloat() ?: 0f
 
         Log.d("PhishingUploader", """
         📦 전송할 데이터:
@@ -201,7 +211,6 @@ class CallRecordingFileObserver(
             }
         })
     }
-
 
     private fun getAccessTokenFromPrefs(context: Context): String? {
         val prefs = context.getSharedPreferences("TokenStorage", Context.MODE_PRIVATE)

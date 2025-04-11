@@ -3,6 +3,8 @@ package com.aicheck.sms
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.database.Cursor
+import android.net.Uri
 import android.provider.Telephony
 import android.util.Log
 import com.aicheck.UrlModelManager
@@ -12,48 +14,48 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.regex.Pattern
 
-class SmsReceiver : BroadcastReceiver() {
+class MmsReceiver : BroadcastReceiver() {
     companion object {
-        private const val TAG = "SmsReceiver"
+        private const val TAG = "MmsReceiver"
 
-        val urlPattern = Pattern.compile(
-            "(https?://(?:[\\w.-]+)(?:\\.[a-z]{2,})(?:/[^\\s]*)?)",
+        private val urlPattern: Pattern = Pattern.compile(
+            "(https?://)?(www\\.)?[a-zA-Z0-9\\-]+\\.[a-z]{2,}(/[\\w\\-._~:/?\\[\\]\\@!$&'()*+,;=%]*)?",
             Pattern.CASE_INSENSITIVE
         )
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Telephony.Sms.Intents.SMS_RECEIVED_ACTION == intent.action) {
-            val msgs = Telephony.Sms.Intents.getMessagesFromIntent(intent)
+        Log.d(TAG, "📨 MMS 수신 감지됨")
 
-            for (msg in msgs) {
-                val messageBody = msg.messageBody
-                Log.d(TAG, "📩 수신된 메시지: $messageBody")
+        val uri: Uri = Telephony.Mms.Inbox.CONTENT_URI
+        val projection = arrayOf("_id", "sub", "ct_t") // 제목, 타입
+        val selection = "read = 0"
+        val cursor: Cursor? = context.contentResolver.query(uri, projection, selection, null, "date DESC")
 
-                val matcher = urlPattern.matcher(messageBody)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val subject = it.getString(it.getColumnIndexOrThrow("sub")) ?: ""
+                Log.d(TAG, "📩 MMS 제목: $subject")
+
+                val matcher = urlPattern.matcher(subject)
                 while (matcher.find()) {
-                    var url = matcher.group() // URL만 추출됨
-                    Log.d(TAG, "🌐 추출된 raw URL: $url")
-
-                    // ✅ http:// 또는 https:// 제거
+                    var url = matcher.group()
+                    Log.d(TAG, "🌐 추출된 raw URL (MMS): $url")
                     url = url.removePrefix("http://").removePrefix("https://")
-                    Log.d(TAG, "🌐 정리된 URL: $url")
 
                     try {
                         val maliciousProb = UrlModelManager.detectUrl(context, url)
                         Log.d(TAG, "🤖 악성 확률: $maliciousProb")
-
                         if (maliciousProb >= 0.5f) {
                             sendBadUrlToServer(context, url, maliciousProb)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "🚨 URL 탐지 중 오류", e)
+                        Log.e(TAG, "🚨 URL 탐지 중 오류 (MMS)", e)
                     }
                 }
             }
         }
     }
-
 
     private fun sendBadUrlToServer(context: Context, url: String, score: Float) {
         val accessToken = getAccessTokenFromPrefs(context)
@@ -62,11 +64,9 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
-        val client = OkHttpClient()
-
         val json = JSONObject().apply {
             put("url", url)
-            put("score", score.toDouble())
+            put("score", score)
         }
 
         val requestBody = RequestBody.create(
@@ -80,14 +80,14 @@ class SmsReceiver : BroadcastReceiver() {
             .post(requestBody)
             .build()
 
-        client.newCall(request).enqueue(object : Callback {
+        OkHttpClient().newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Log.e(TAG, "❌ 서버 전송 실패: ${e.message}", e)
+                Log.e(TAG, "❌ 서버 전송 실패: ${e.message}")
             }
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    Log.d(TAG, "✅ 서버 전송 성공")
+                    Log.d(TAG, "✅ 서버 전송 성공 (MMS)")
                 } else {
                     Log.e(TAG, "⚠️ 서버 응답 오류: ${response.code}")
                 }
