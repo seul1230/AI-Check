@@ -1,0 +1,7 @@
+flask
+requests
+conf
+ngrok
+pyngrok
+whisper
+flask_cors
