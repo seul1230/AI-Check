@@ -23,7 +23,7 @@ android {
     }
 
     androidResources {
-        noCompress += listOf("onnx")
+        noCompress += listOf("onnx", "pkl")
     }
 
     buildTypes {
@@ -68,6 +68,11 @@ chaquopy {
             install("numpy")
             install("pillow")
             install("scipy")
+
+            // scikit-learn 1.3.2
+            install("scikit-learn")
+            install("pandas")
+            install("tqdm")
         }
     }
 }
