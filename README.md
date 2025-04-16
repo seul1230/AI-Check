@@ -173,11 +173,11 @@
 
 ## 👥 팀원
 
-|                         조예슬                          |                          유선우                           |                          이승우                           |                          이시우                           |                        이정현                             |                           김혜빈                           |
-| :-----------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :--------------------------------------------------------: |
-| <img src="https://github.com/seul1230.png" width="100"> | <img src="https://github.com/BrokenFinger98.png" width="100"> | <img src="https://github.com/swoolee97.png" width="100"> | <img src="https://github.com/LEE-SIU.png" width="100"> | <img src="https://github.com/junghyunl.png" width="100"> | <img src="https://github.com/bin5459.png" width="100"> |
-|                         **AI**                          |                          **BE**                           |                          **BE**                           |                          **AI**                           |                         **FE**                            |                           **FE**                           |
-|        [@seul1230](https://github.com/seul1230)         |       [@BrokenFinger98](https://github.com/BrokenFinger98)        |       [@swoolee97](https://github.com/swoolee97)        |        [@LEE-SIU](https://github.com/LEE-SIU)       |       [@junghyunl](https://github.com/junghyunl)        |       [@bin5459](https://github.com/bin5459)       |
+| 조예슬 | 이시우 | 유선우 | 이승우 | 이정현 | 김혜빈 |
+| :----: | :----: | :----: | :----: | :----: | :----: |
+| <img src="https://github.com/seul1230.png" width="100"> | <img src="https://github.com/LEE-SIU.png" width="100"> | <img src="https://github.com/BrokenFinger98.png" width="100"> | <img src="https://github.com/swoolee97.png" width="100"> | <img src="https://github.com/junghyunl.png" width="100"> | <img src="https://github.com/bin5459.png" width="100"> |
+| **AI** | **AI** | **BE** | **BE** | **FE** | **FE** |
+| [@seul1230](https://github.com/seul1230) | [@LEE-SIU](https://github.com/LEE-SIU) | [@BrokenFinger98](https://github.com/BrokenFinger98) | [@swoolee97](https://github.com/swoolee97) | [@junghyunl](https://github.com/junghyunl) | [@bin5459](https://github.com/bin5459) |
 
 <br>
 
