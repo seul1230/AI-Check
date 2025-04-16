@@ -27,10 +27,14 @@
 - 월별/카테고리별 지출 패턴 시각화
 - 부모의 정기 용돈 지급 판단 기준 제공
 
+
+
 #### ✍️ 자동 용돈 기입장
 
 - 수입/지출 발생 시 자동 금액 입력
 - 자녀는 상세 내용만 작성하면 되는 **간편한 기록 환경 제공**
+
+
 
 #### 🤖 용돈 협상 AI (엄마 AI)
 
@@ -38,6 +42,9 @@
 - **추가 용돈 요청**: AI에게 설득 → 성공 시 부모에게 용돈 인상 요청 메시지(대화 요약) 전송, 실패 시 ‘거절’ 피드백 제공
 
 > 설득 기준, 용돈 한도, 대화 스타일 등은 **부모가 자유롭게 커스터마이징 가능**
+
+![엄마AI](https://github.com/user-attachments/assets/631dbe48-07c9-4b6b-9d84-0c3b02c001d0)
+
 
 <br>
 
@@ -55,6 +62,9 @@
 - 문자 내 URL 자동 분석
 - 악성 URL 감지 시 **경고 알림 전송** 및 클릭 차단 유도
 
+![스미싱](https://github.com/user-attachments/assets/811bb508-f43a-411c-b1a4-98d435fab96f)
+
+
 <br>
 
 ### 기능 3. 부모의 걱정 없는 금융 생활
@@ -63,22 +73,6 @@
 - AI가 실시간으로 위험을 분석하고 **가족에게 즉시 공유**
 - **가족 단위의 디지털 보안 체계 구현**
 
-<br>
-
-## 🛠 기술 스택
-
-- **AI 모델**
-  - 딥보이스 탐지: CNN-BiLSTM + Segment-level 후처리
-  - 악성 URL 탐지: TF-IDF + LightGBM → ONNX 변환으로 모바일 추론 지원
-
-- **모바일 앱**
-  - Android (Kotlin)
-  - Chaquopy 기반 Python 전처리
-  - TFLite 기반 온디바이스 추론
-
-- **데이터 처리**
-  - Mel-spectrogram: TensorFlow 기반 librosa 유사 로직 구현
-  - 벡터 특성 추출 및 정규화 처리
 
 <br>
 
@@ -105,24 +99,77 @@
     - Spring Cloud Gateway는 API 응답을 CloudFront에 다시 전달합니다.
     - CloudFront는 HTTPS 연결을 통해 최종 사용자 웹뷰에 응답을 전달합니다.
 
+<br>
+
+## 🛠 기술 스택
+
+### 🖥️ Backend & DevOps
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Kafka-231F20?style=for-the-badge&logo=apache-kafka&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white) <br>
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
+![Spring JPA](https://img.shields.io/badge/Spring%20JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Spring Security](https://img.shields.io/badge/Spring%20Security-6DB33F?style=for-the-badge&logo=spring-security&logoColor=white)
+![Spring Cloud](https://img.shields.io/badge/Spring%20Cloud-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Spring Batch](https://img.shields.io/badge/Spring%20Batch-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+
+
+
+### 🤖 AI
+
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![TFLite](https://img.shields.io/badge/TFLite-FFCC00?style=for-the-badge&logo=tensorflow&logoColor=black)
+![ONNX](https://img.shields.io/badge/ONNX-005CED?style=for-the-badge&logo=onnx&logoColor=white)
+
+
+### 🌐 Frontend
+
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=next.js&logoColor=white)
+
+
+###  🐝 ️Database
+
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![ElasticSearch](https://img.shields.io/badge/ElasticSearch-005571?style=for-the-badge&logo=elasticsearch&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+
+
+
+### 🛠️ CI/CD & Collaboration
+
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![Gitlab](https://img.shields.io/badge/Gitlab-000000?style=for-the-badge&logo=jenkins&logoColor=white)
+![Figma](https://img.shields.io/badge/Figma-a259ff?style=for-the-badge&logo=figma&logoColor=white)
+![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white)
+![Jira](https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white)
+![Mattermost](https://img.shields.io/badge/Mattermost-0058CC?style=for-the-badge&logo=mattermost&logoColor=white)
 
 
 <br>
 
-## 🎬 데모 및 시연 (예정)
-
-- AI와 자녀의 대화 예시, UI 캡처, 구조도 등 순차적으로 공개 예정
-- GIF 기반 인터랙션 예시 및 테스트 결과 포함 예정
 
 <br>
 
 ## 👥 팀원
 
+|                         조예슬                          |                          유선우                           |                          이승우                           |                          이시우                           |                        이정현                             |                           김혜빈                           |
+| :-----------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :-------------------------------------------------------: | :--------------------------------------------------------: |
+| <img src="https://github.com/seul1230.png" width="100"> | <img src="https://github.com/BrokenFinger98.png" width="100"> | <img src="https://github.com/swoolee97.png" width="100"> | <img src="https://github.com/LEE-SIU.png" width="100"> | <img src="https://github.com/junghyunl.png" width="100"> | <img src="https://github.com/bin5459.png" width="100"> |
+|                         **AI**                          |                          **BE**                           |                          **BE**                           |                          **AI**                           |                         **FE**                            |                           **FE**                           |
+|        [@seul1230](https://github.com/seul1230)         |       [@BrokenFinger98](https://github.com/BrokenFinger98)        |       [@swoolee97](https://github.com/swoolee97)        |        [@LEE-SIU](https://github.com/LEE-SIU)       |       [@junghyunl](https://github.com/junghyunl)        |       [@bin5459](https://github.com/bin5459)       |
+
 <br>
 
 ## 📌 브랜치
 - 🚀 AI-dev : 엄마 AI, 보이스피싱(음성/내용 기반), 악성 URL 분류 모델 개발 및 데이터 전처리를 담당하는 브랜치입니다.
-- 📱 APP-dev : 통화 중 녹음 감지, 문자 내용 중 하이퍼링크 감지 (경량화된 AI 모델 탑재)
+- 📱 APP-dev : 통화 중 녹음 감지, 문자 내용 중 하이퍼링크 감지 -> model inference (경량화된 AI 모델 탑재)
 - ⭐ BE-dev
 - 🎨 FE-dev
 
