@@ -33,13 +33,13 @@
 
 <table>
     <tr>
-    <td width="40%" align="center">
+    <td width="30%" align="center">
         <img src="img/용돈기입장.gif" width="100%">
     </td>
     <td valign="top">
         <ul>
             <li>수입/지출 발생 시 자동 금액 입력</li>
-            <li>자녀는 상세 내용만 작성하면 되는 **간편한 기록 환경 제공**</li>
+            <li>자녀는 상세 내용만 작성하면 되는 <strong>간편한 기록 환경 제공</strong></li>
         </ul>
     </td>
     </tr>
